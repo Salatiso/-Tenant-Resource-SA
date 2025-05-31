@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<!-- Visualization & Content Choices:
+    - Home (Lifecycle): Goal=Organize/Inform. Method=HTML/CSS diagram with Font Awesome, JS for click-to-expand details. Justification=Visual overview of landlord process & costs.
+    - Home (Quiz): Goal=Engage/Inform. Method=JS logic, HTML display. Interaction=User answers, gets feedback. Justification=Interactive learning.
+    - Lease Journey (Understanding Lease): Goal=Inform. Method=HTML lists, Font Awesome icons. Interaction=None. Justification=Clear, concise.
+    - Lease Journey (Early Termination Process): Goal=Organize. Method=HTML/CSS step-by-step display. Interaction=None. Justification=Visualizes sequence.
+    - Cost Explorer (Landlord Costs Chart): Goal=Compare/Inform. Method=Chart.js Bar chart. Interaction=Static. Justification=Shows cost types.
+    - Cost Explorer (Early Term. Calculator): Goal=Inform/Relationships. Method=HTML form, JS calc. More inputs (lease duration). Interaction=User input. Justification=Personalized estimation.
+    - Cost Explorer (Onboarding Costs): Goal=Inform. Method=HTML list. Interaction=None. Justification=Transparency on setup costs.
+    - Cost Explorer (Value of Long Lease Calc): Goal=Inform/Compare. Method=HTML form, JS calc. Interaction=User input. Justification=Shows financial benefit of longer leases.
+    - Cost Explorer (Legal Costs Info): Goal=Inform. Method=Text with links. Justification=Provides guidance on potential legal avenues and costs.
+    - Your Deposit (Detailed): Goal=Inform/Organize. Method=Accordion for sub-topics (Why, Factors, Use, Refund). Interaction=Accordion clicks. Justification=Comprehensive info.
+    - Your Deposit (Settlement Chart): Goal=Inform/Organize. Method=Chart.js Donut chart. Interaction=Static. Justification=Clarifies deposit use.
+    - Rights & Recourse (Detailed): Goal=Inform/Organize. Method=Accordion for CPA, RHA, Dispute. Added links. Interaction=Accordion clicks. Justification=Comprehensive legal info.
+    - Library=Chart.js (Canvas only). Font Awesome for icons.
+-->
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tenant Resource Centre SA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Source Sans Pro', sans-serif;
+            background-color: #F8F9FA;
+            color: #343A40;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .app-container { display: flex; flex-direction: column; height: 100vh; }
+        .app-header {
+            background-color: #FFFFFF; padding: 1rem 1.5rem; border-bottom: 1px solid #DEE2E6;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; align-items: center;
+        }
+        .app-header .logo { font-size: 1.5rem; font-weight: 700; color: #495057; margin-right: auto; }
+        .app-header .logo .fa-house-user { color: #6C757D; }
+        .tab-navigation {
+            background-color: #FFFFFF; border-bottom: 1px solid #DEE2E6; display: flex;
+            justify-content: center; padding: 0.5rem 0; flex-wrap: wrap; /* Allow tabs to wrap on small screens */
+        }
+        .tab-button {
+            padding: 0.75rem 1.25rem; cursor: pointer; color: #6C757D; font-weight: 600;
+            border-bottom: 3px solid transparent; transition: color 0.3s, border-color 0.3s; white-space: nowrap;
+        }
+        .tab-button:hover { color: #495057; }
+        .tab-button.active { color: #343A40; border-bottom-color: #495057; }
+        .content-area { flex-grow: 1; overflow-y: auto; padding: 1.5rem; background-color: #F8F9FA; }
+        .tab-content { display: none; animation: fadeIn 0.5s; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .card { background-color: #FFFFFF; border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .card-title { font-size: 1.5rem; font-weight: 600; color: #495057; margin-bottom: 1rem; }
+        .accordion-item { border: 1px solid #DEE2E6; border-radius: 4px; margin-bottom: 0.5rem; }
+        .accordion-header {
+            background-color: #f8f9fae0; padding: 0.75rem 1rem; cursor: pointer; font-weight: 600;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .accordion-content { padding: 1rem; border-top: 1px solid #DEE2E6; display: none; }
+        .chart-container { position: relative; width: 100%; max-width: 500px; margin: 1rem auto; height: 280px; max-height: 320px; }
+        @media (min-width: 768px) { .chart-container { height: 320px; max-height: 350px; } }
+        input[type="number"], input[type="date"], select {
+            border: 1px solid #CED4DA; padding: 0.5rem; border-radius: 4px; width: 100%; margin-bottom: 0.5rem;
+        }
+        .btn {
+            background-color: #495057; color: #FFFFFF; padding: 0.6rem 1.2rem; border-radius: 4px;
+            font-weight: 600; cursor: pointer; transition: background-color 0.3s; border: none;
+        }
+        .btn:hover { background-color: #343A40; }
+        .btn-secondary { background-color: #E9ECEF; color: #343A40; }
+        .btn-secondary:hover { background-color: #DEE2E6; }
+
+        .step-container { display: flex; flex-direction: column; gap: 1rem; }
+        .step { display: flex; align-items: center; background-color: #E9ECEF; padding: 0.75rem; border-radius: 6px;}
+        .step-icon { font-size: 1.5rem; color: #495057; margin-right: 0.75rem; width: 30px; text-align: center;}
+        .step-text { flex-grow: 1; }
+
+        .lifecycle-container { display: flex; flex-direction: column; gap: 1rem; }
+        .lifecycle-phase { border: 1px solid #DEE2E6; border-radius: 6px; overflow: hidden; }
+        .lifecycle-header { background-color: #E9ECEF; padding: 0.75rem 1rem; cursor: pointer; font-weight: 600; display: flex; align-items: center; }
+        .lifecycle-header i { margin-right: 0.5rem; color: #495057; }
+        .lifecycle-details { padding: 1rem; display: none; border-top: 1px solid #DEE2E6; background-color: #fff; }
+        .lifecycle-details ul { list-style-type: disc; padding-left: 1.5rem; }
+
+        .quiz-container { margin-top: 1.5rem; }
+        .quiz-question { margin-bottom: 1rem; font-weight: 600; }
+        .quiz-options button {
+            display: block; width: 100%; text-align: left; padding: 0.75rem; margin-bottom: 0.5rem;
+            border: 1px solid #CED4DA; border-radius: 4px; background-color: #fff; cursor: pointer;
+        }
+        .quiz-options button:hover { background-color: #F8F9FA; }
+        .quiz-options button.selected { background-color: #D1E7FD; border-color: #0D6EFD; }
+        .quiz-feedback { margin-top: 1rem; padding: 0.75rem; border-radius: 4px; }
+        .quiz-feedback.correct { background-color: #D1E7DD; color: #0F5132; }
+        .quiz-feedback.incorrect { background-color: #F8D7DA; color: #842029; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <div class="logo"><i class="fas fa-house-user"></i> Tenant Resource SA</div>
+        </header>
+
+        <nav class="tab-navigation">
+            <button class="tab-button active" data-tab="home">Home</button>
+            <button class="tab-button" data-tab="leaseJourney">Lease Journey</button>
+            <button class="tab-button" data-tab="costExplorer">Cost Explorer</button>
+            <button class="tab-button" data-tab="yourDeposit">Your Deposit</button>
+            <button class="tab-button" data-tab="rightsRecourse">Rights & Recourse</button>
+        </nav>
+
+        <main class="content-area">
+            <div id="home" class="tab-content active">
+                <div class="card">
+                    <h2 class="card-title"><i class="fas fa-door-open"></i> Welcome to Your Tenant Resource Centre</h2>
+                    <p class="text-gray-700 mb-3">Navigating renting can be complex. This centre clarifies lease agreements, early termination, and costs, fostering transparency and empowering tenants.</p>
+                </div>
+
+                <div class="card">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-3"><i class="fas fa-recycle"></i> The Landlord's Rental Lifecycle & Costs</h3>
+                    <p class="text-sm mb-4">Understanding the landlord's process can build empathy. Click each phase to see typical activities and associated costs.</p>
+                    <div class="lifecycle-container">
+                        <div class="lifecycle-phase">
+                            <div class="lifecycle-header" data-lifecycle="onboarding">
+                                <i class="fas fa-user-plus"></i> Tenant Onboarding
+                            </div>
+                            <div class="lifecycle-details">
+                                <p><strong>Activities:</strong> Advertising property, conducting viewings, screening applicants (credit checks, references), preparing lease agreement, handover inspection.</p>
+                                <p><strong>Typical Costs:</strong> Agent commission (if used, often 1 month's rent), advertising fees (R200-R1000+), credit check fees (R100-R250 per applicant), time investment.</p>
+                            </div>
+                        </div>
+                        <div class="lifecycle-phase">
+                            <div class="lifecycle-header" data-lifecycle="occupancy">
+                                <i class="fas fa-house-chimney-user"></i> During Occupancy
+                            </div>
+                            <div class="lifecycle-details">
+                                <p><strong>Activities:</strong> Collecting rent, property maintenance (plumbing, electrical, structural), managing tenant queries, routine inspections.</p>
+                                <p><strong>Typical Costs:</strong> Ongoing maintenance (variable, e.g., R500-R5000+ per incident), insurance, levies/rates (if applicable and not tenant-paid), potential for managing arrears.</p>
+                            </div>
+                        </div>
+                        <div class="lifecycle-phase">
+                            <div class="lifecycle-header" data-lifecycle="termination">
+                                <i class="fas fa-file-contract"></i> Lease Termination (Normal)
+                            </div>
+                            <div class="lifecycle-details">
+                                <p><strong>Activities:</strong> Receiving/giving notice, outgoing inspection, deposit reconciliation (damages vs. fair wear & tear), finding new tenant (restarts onboarding).</p>
+                                <p><strong>Typical Costs:</strong> Potential repairs/cleaning if beyond fair wear & tear, time for inspection & admin, costs associated with re-letting (see Onboarding).</p>
+                            </div>
+                        </div>
+                         <div class="lifecycle-phase">
+                            <div class="lifecycle-header" data-lifecycle="early_termination">
+                                <i class="fas fa-exclamation-triangle"></i> Early Lease Termination
+                            </div>
+                            <div class="lifecycle-details">
+                                <p><strong>Activities:</strong> All 'Normal Termination' activities PLUS actively mitigating loss by finding a replacement tenant ASAP.</p>
+                                <p><strong>Typical Costs:</strong> Loss of rental income for vacant period, pro-rata initial agent fees, new agent fees/advertising to find replacement. These form the basis of the "reasonable cancellation penalty".</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card quiz-container">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-3"><i class="fas fa-question-circle"></i> Test Your Tenant Knowledge!</h3>
+                    <div id="quizArea">
+                        <div id="quizProgress" class="text-sm text-gray-600 mb-2"></div>
+                        <div id="quizQuestion" class="quiz-question"></div>
+                        <div id="quizOptions" class="quiz-options"></div>
+                        <div id="quizFeedback" class="quiz-feedback" style="display: none;"></div>
+                        <div id="quizControls" class="mt-4">
+                            <button id="nextQuizQuestionBtn" class="btn">Next Question</button>
+                            <button id="revealAnswerBtn" class="btn btn-secondary ml-2">Reveal Answer</button>
+                        </div>
+                        <div id="quizScoreArea" class="mt-4" style="display: none;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="leaseJourney" class="tab-content">
+                <div class="card">
+                    <h2 class="card-title"><i class="fas fa-file-signature"></i> Understanding Your Lease</h2>
+                    <ul class="list-disc list-inside space-y-2 mb-6 pl-4">
+                        <li><strong>Lease Period:</strong> Duration of tenancy.</li>
+                        <li><strong>Rent & Due Date:</strong> Amount and payment day.</li>
+                        <li><strong>Deposit:</strong> Purpose, conditions for refund. (More in "Your Deposit" tab)</li>
+                        <li><strong>Notice Period:</strong> For termination by either party.</li>
+                        <li><strong>Tenant Obligations:</strong> Property upkeep, rule adherence.</li>
+                        <li><strong>Landlord Obligations:</strong> Maintenance, habitability.</li>
+                        <li><strong>House Rules:</strong> Specific rules for the property/complex.</li>
+                        <li><strong>Breach Clause:</strong> Consequences of not meeting lease terms.</li>
+                    </ul>
+                    <h3 class="text-xl font-semibold text-gray-800 mb-3">Early Lease Termination: The Basics</h3>
+                    <div class="step-container">
+                        <div class="step"><span class="step-icon"><i class="fas fa-bullhorn"></i></span><div class="step-text"><strong>1. Notification:</strong> Give written notice (CPA: 20 business days, or lease if more favorable).</div></div>
+                        <div class="step"><span class="step-icon"><i class="fas fa-search-dollar"></i></span><div class="step-text"><strong>2. Landlord Mitigates Loss:</strong> Landlord must try to find a replacement tenant.</div></div>
+                        <div class="step"><span class="step-icon"><i class="fas fa-calculator"></i></span><div class="step-text"><strong>3. Reasonable Penalty:</strong> Landlord can charge for actual costs due to early departure.</div></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="costExplorer" class="tab-content">
+                <div class="card">
+                    <h2 class="card-title"><i class="fas fa-chart-line"></i> Landlord's Costs in Early Termination</h2>
+                    <div class="chart-container" style="max-width: 450px; height: 250px;">
+                        <canvas id="landlordCostsChart"></canvas>
+                    </div>
+                    <p class="text-sm text-center text-gray-600 mt-2">Illustrative breakdown of typical landlord costs.</p>
+                </div>
+                <div class="card">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-3"><i class="fas fa-calculator-alt"></i> Early Termination Cost Estimator</h3>
+                    <p class="mb-4 text-sm">This tool provides an estimate. Actual costs depend on specifics and landlord's mitigation efforts.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div><label for="et_monthlyRent" class="block text-sm font-medium">Monthly Rent (R)</label><input type="number" id="et_monthlyRent" placeholder="e.g., 5500"></div>
+                        <div><label for="et_leaseDuration" class="block text-sm font-medium">Original Lease Duration (Months)</label><input type="number" id="et_leaseDuration" placeholder="e.g., 12"></div>
+                        <div><label for="et_monthsCompleted" class="block text-sm font-medium">Months Completed in Lease</label><input type="number" id="et_monthsCompleted" placeholder="e.g., 3"></div>
+                        <div><label for="et_noticeGiven" class="block text-sm font-medium">Notice Period Given (Months)</label><input type="number" id="et_noticeGiven" placeholder="e.g., 1" value="1"></div>
+                    </div>
+                    <button id="et_calculateCostsBtn" class="btn">Estimate Early Termination Penalty</button>
+                    <div id="et_costEstimateResults" class="mt-4 p-3 bg-gray-100 rounded text-sm">Enter details above.</div>
+                </div>
+                 <div class="card">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-3"><i class="fas fa-user-check"></i> Typical Landlord Onboarding Costs</h3>
+                    <ul class="list-disc list-inside space-y-1 text-sm pl-4">
+                        <li><strong>Advertising:</strong> R200 - R1000+ (online portals, newspapers).</li>
+                        <li><strong>Credit Checks:</strong> R100 - R250 per applicant.</li>
+                        <li><strong>Agent Commission (Placement):</strong> Typically 50% to 100% of first month's rent.</li>
+                        <li><strong>Lease Agreement Drafting:</strong> R0 (if standard) to R500+ (if attorney drafted).</li>
+                        <li><strong>Ingoing Inspection & Key Handover:</strong> Time cost, potentially R200-R500 if outsourced.</li>
+                        <li><strong>Property Preparation:</strong> Cleaning (R300-R1000+), minor repairs/painting (variable, R500-R5000+ depending on state).</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-3"><i class="fas fa-piggy-bank"></i> The Value of a Longer Lease</h3>
+                     <p class="mb-4 text-sm">Landlords often prefer longer leases as it reduces turnover costs. Sometimes, this can translate to better rental rates for tenants.</p>
+                    <div><label for="vl_dailyRate" class="block text-sm font-medium">Typical Short-Term/Daily Rate (R)</label><input type="number" id="vl_dailyRate" placeholder="e.g., 500" value="500"></div>
+                    <button id="vl_calculateValueBtn" class="btn mt-2">Show Savings Comparison</button>
+                    <div id="vl_results" class="mt-4 p-3 bg-gray-100 rounded text-sm">Enter daily rate to compare.</div>
+                </div>
+                <div class="card">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-3"><i class="fas fa-gavel"></i> Navigating Legal Costs</h3>
+                    <p class="text-sm mb-2">If disputes arise, understanding potential legal avenues and costs is important:</p>
+                    <ul class="list-disc list-inside space-y-1 text-sm pl-4">
+                        <li><strong>Rental Housing Tribunal:</strong> Free service for tenants and landlords. No lawyers needed initially. <a href="https://www.gauteng.gov.za/HumanSettlements/Pages/Rental-Housing-Tribunal.aspx" target="_blank" class="text-blue-600 hover:underline">(Example: Gauteng RHT)</a></li>
+                        <li><strong>Small Claims Court:</strong> For claims up to R20,000. Minimal costs (R100-R300 for summons). No legal representation allowed. <a href="https://www.justice.gov.za/scc/scc.htm" target="_blank" class="text-blue-600 hover:underline">(DOJ Info)</a></li>
+                        <li><strong>Consumer Goods & Services Ombud (CGSO):</strong> Free dispute resolution for CPA matters. <a href="https://www.cgso.org.za/" target="_blank" class="text-blue-600 hover:underline">(CGSO Website)</a></li>
+                        <li><strong>Legal Representation (Magistrate's/High Court):</strong> Can be very expensive (R5,000 - R100,000+). Usually a last resort.</li>
+                    </ul>
+                     <p class="text-xs mt-2">Always seek to resolve disputes amicably first. Mediation is often a good step before formal legal action.</p>
+                </div>
+            </div>
+
+            <div id="yourDeposit" class="tab-content">
+                <div class="card">
+                    <h2 class="card-title"><i class="fas fa-hand-holding-usd"></i> All About Your Security Deposit</h2>
+                    <div class="accordion-item">
+                        <div class="accordion-header" data-accordion="whyDeposit"><span><i class="fas fa-question-circle text-blue-500"></i> Why Pay a Deposit?</span><i class="fas fa-chevron-down"></i></div>
+                        <div class="accordion-content"><p>A security deposit is paid by the tenant to the landlord or agent at the start of a lease. Its primary purpose is to protect the landlord against financial loss if the tenant breaches the lease agreement. This could include unpaid rent or damages to the property beyond normal wear and tear.</p></div>
+                    </div>
+                    <div class="accordion-item">
+                        <div class="accordion-header" data-accordion="depositAmount"><span><i class="fas fa-coins text-yellow-500"></i> Factors Affecting Deposit Amount</span><i class="fas fa-chevron-down"></i></div>
+                        <div class="accordion-content">
+                            <ul class="list-disc pl-4 space-y-1">
+                                <li><strong>Market Norm:</strong> Commonly equivalent to one month's rent. Some landlords may ask for 1.5 or 2 months, especially for furnished properties or if the tenant has a weaker credit profile.</li>
+                                <li><strong>Property Value & Condition:</strong> Higher value or newly renovated properties might command a higher deposit.</li>
+                                <li><strong>Furnishings:</strong> Furnished properties often require a larger deposit to cover potential damage to contents.</li>
+                                <li><strong>Tenant's Profile:</strong> Credit history and rental history can influence the landlord's risk assessment and thus the deposit amount.</li>
+                                <li><strong>Pets:</strong> If pets are allowed, an additional pet deposit might be requested.</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <div class="accordion-header" data-accordion="depositUsedFor"><span><i class="fas fa-tools text-red-500"></i> What Can a Deposit Be Used For?</span><i class="fas fa-chevron-down"></i></div>
+                        <div class="accordion-content">
+                            <p>A landlord can use the deposit to cover:</p>
+                            <ul class="list-disc pl-4 space-y-1">
+                                <li><strong>Unpaid Rent:</strong> Any outstanding rental amounts at the end of the lease.</li>
+                                <li><strong>Damages to Property:</strong> Costs to repair damages caused by the tenant or their guests, excluding fair wear and tear (e.g., replacing a broken window vs. repainting a faded wall after years).</li>
+                                <li><strong>Cleaning Costs:</strong> If the property is not returned in a reasonably clean condition (as it was received, minus fair wear and tear).</li>
+                                <li><strong>Lost Keys/Remotes:</strong> Cost of replacement.</li>
+                                <li><strong>Reasonable Cancellation Penalty:</strong> In cases of early lease termination, as discussed in the "Cost Explorer" tab.</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <div class="accordion-header" data-accordion="depositInterest"><span><i class="fas fa-percent text-green-500"></i> Deposit and Interest (Rental Housing Act)</span><i class="fas fa-chevron-down"></i></div>
+                        <div class="accordion-content">
+                            <ul class="list-disc pl-4 space-y-1">
+                                <li>The landlord must keep your deposit in an interest-bearing account with a financial institution.</li>
+                                <li>The interest rate must be at least equivalent to that of a savings account with that institution.</li>
+                                <li>All accrued interest belongs to you, the tenant.</li>
+                                <li>The landlord must provide you with written proof of accrued interest if you request it.</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <div class="accordion-header" data-accordion="depositRefund"><span><i class="fas fa-undo-alt text-purple-500"></i> Getting Your Deposit Back</span><i class="fas fa-chevron-down"></i></div>
+                        <div class="accordion-content">
+                            <ul class="list-disc pl-4 space-y-1">
+                                <li><strong>Joint Inspection:</strong> A joint ingoing (before you move in) and outgoing (when you move out) inspection is crucial. Both parties should agree on the property's condition and any damages. Document everything with photos.</li>
+                                <li><strong>No Damages:</strong> If there are no damages and no outstanding amounts, your full deposit plus interest should be refunded within 7 days of lease expiry.</li>
+                                <li><strong>Damages Found:</strong> If repairs are needed, the landlord can use the deposit. They must provide you with receipts for these repairs. The remaining balance (if any) plus interest must be refunded within 14 days of restoration of the property.</li>
+                                <li><strong>Tenant Fails to Attend Outgoing Inspection:</strong> If you don't attend the outgoing inspection after reasonable notice, the landlord can inspect within 7 days of lease expiry and use the deposit for repairs. They must still provide receipts. The balance must be refunded within 21 days of lease expiry.</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="chart-container mt-6" style="max-width: 350px; height: 280px;">
+                        <canvas id="depositSettlementChart"></canvas>
+                    </div>
+                    <p class="text-sm text-center text-gray-600 mt-2">Example: How a R5500 deposit might be allocated if penalty/damages are R2500.</p>
+                </div>
+            </div>
+
+            <div id="rightsRecourse" class="tab-content">
+                <div class="card">
+                    <h2 class="card-title"><i class="fas fa-balance-scale"></i> Your Rights & Seeking Recourse</h2>
+                    <div class="accordion-item">
+                        <div class="accordion-header" data-accordion="cpa"><span><i class="fas fa-shield-alt text-blue-500"></i> Consumer Protection Act (CPA) No. 68 of 2008</span><i class="fas fa-chevron-down"></i></div>
+                        <div class="accordion-content">
+                            <p>Section 14 is key for fixed-term leases:</p>
+                            <ul class="list-disc pl-4 space-y-1">
+                                <li>Right to cancel early (20 business days' written notice).</li>
+                                <li>Landlord can impose a "reasonable" cancellation penalty.</li>
+                                <li>"Reasonable" considers: lease duration remaining, actual loss to landlord, benefit tenant received. Landlord must show they tried to mitigate loss (e.g., find new tenant).</li>
+                                <li>The CPA aims for fairness and prevents excessive penalties.</li>
+                            </ul>
+                            <p class="mt-2 text-sm"><strong>Resource:</strong> <a href="https://www.gov.za/documents/consumer-protection-act" target="_blank" class="text-blue-600 hover:underline">Official CPA Document</a></p>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <div class="accordion-header" data-accordion="rha"><span><i class="fas fa-home-lg-alt text-green-500"></i> Rental Housing Act (RHA) No. 50 of 1999</span><i class="fas fa-chevron-down"></i></div>
+                        <div class="accordion-content">
+                            <p>Governs landlord-tenant relationships:</p>
+                            <ul class="list-disc pl-4 space-y-1">
+                                <li>Mandates written lease agreements.</li>
+                                <li>Regulates security deposits (interest-bearing account, joint inspections, refund timelines).</li>
+                                <li>Outlines rights (e.g., privacy, habitable property) and obligations for both parties.</li>
+                                <li>Prohibits unfair practices (e.g., unlawful eviction, utility cut-offs).</li>
+                            </ul>
+                             <p class="mt-2 text-sm"><strong>Resource:</strong> <a href="https://www.gov.za/documents/rental-housing-act" target="_blank" class="text-blue-600 hover:underline">Official RHA Document</a></p>
+                        </div>
+                    </div>
+                     <div class="accordion-item">
+                        <div class="accordion-header" data-accordion="dispute"><span><i class="fas fa-gavel text-red-500"></i> Dispute Resolution Channels</span><i class="fas fa-chevron-down"></i></div>
+                        <div class="accordion-content">
+                            <p>If you can't resolve issues with your landlord:</p>
+                            <ul class="list-disc pl-4 space-y-1">
+                                <li><strong>Rental Housing Tribunal:</strong> Free, specialized bodies in each province. Find your local one via provincial government websites (e.g., <a href="https://www.westerncape.gov.za/general-publication/rental-housing-tribunal" target="_blank" class="text-blue-600 hover:underline">WC RHT</a>, <a href="https://www.gauteng.gov.za/HumanSettlements/Pages/Rental-Housing-Tribunal.aspx" target="_blank" class="text-blue-600 hover:underline">Gauteng RHT</a>).</li>
+                                <li><strong>Consumer Goods and Services Ombud (CGSO):</strong> For CPA-related disputes. <a href="https://www.cgso.org.za/" target="_blank" class="text-blue-600 hover:underline">CGSO Website</a>.</li>
+                                <li><strong>Small Claims Court:</strong> For monetary claims up to R20,000. Simple process, no lawyers. <a href="https://www.justice.gov.za/scc/scc.htm" target="_blank" class="text-blue-600 hover:underline">DOJ Small Claims Info</a>.</li>
+                                <li><strong>Legal Aid South Africa:</strong> Legal assistance if you meet their means test. <a href="https://legalaid.co.za/" target="_blank" class="text-blue-600 hover:underline">Legal Aid SA Website</a>.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const tabs = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+        const accordions = document.querySelectorAll('.accordion-header');
+        const lifecycleHeaders = document.querySelectorAll('.lifecycle-header');
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(item => item.classList.remove('active'));
+                tab.classList.add('active');
+                const targetTab = tab.getAttribute('data-tab');
+                tabContents.forEach(content => {
+                    content.classList.remove('active');
+                    if (content.id === targetTab) content.classList.add('active');
+                });
+            });
+        });
+
+        accordions.forEach(accordion => {
+            accordion.addEventListener('click', () => {
+                const content = accordion.nextElementSibling;
+                const icon = accordion.querySelector('.fa-chevron-down, .fa-chevron-up');
+                const isOpening = content.style.display !== 'block';
+                
+                document.querySelectorAll('.accordion-content').forEach(ac => {
+                    if (ac !== content) {
+                        ac.style.display = 'none';
+                        const otherIcon = ac.previousElementSibling.querySelector('.fa-chevron-down, .fa-chevron-up');
+                        if(otherIcon) {
+                            otherIcon.classList.remove('fa-chevron-up');
+                            otherIcon.classList.add('fa-chevron-down');
+                        }
+                    }
+                });
+
+                content.style.display = isOpening ? 'block' : 'none';
+                if(icon){
+                    icon.classList.toggle('fa-chevron-down', !isOpening);
+                    icon.classList.toggle('fa-chevron-up', isOpening);
+                }
+            });
+        });
+        
+        lifecycleHeaders.forEach(header => {
+            header.addEventListener('click', () => {
+                const details = header.nextElementSibling;
+                const isOpening = details.style.display !== 'block';
+                document.querySelectorAll('.lifecycle-details').forEach(ld => {
+                    if (ld !== details) ld.style.display = 'none';
+                });
+                details.style.display = isOpening ? 'block' : 'none';
+            });
+        });
+
+        let landlordCostsChartInstance, depositSettlementChartInstance;
+        const chartTooltipTitleCallback = (tooltipItems) => {
+            const item = tooltipItems[0];
+            let label = item.chart.data.labels[item.dataIndex];
+            if (Array.isArray(label)) { return label.join(' '); }
+            return label;
+        };
+        const chartOptionsBase = {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { callbacks: { title: chartTooltipTitleCallback } } }
+        };
+
+        function renderLandlordCostsChart() {
+            const ctx = document.getElementById('landlordCostsChart')?.getContext('2d');
+            if (!ctx) return;
+            if (landlordCostsChartInstance) landlordCostsChartInstance.destroy();
+            landlordCostsChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Initial Agent Fee', 'Lost Rent (1 mo.)', 'New Agent Fee'],
+                    datasets: [{ label: 'Cost (R)', data: [5500, 5500, 5500], backgroundColor: ['#ADB5BD', '#6C757D', '#495057'], borderRadius: 4 }]
+                },
+                options: { ...chartOptionsBase, plugins: { ...chartOptionsBase.plugins, title: { display: true, text: 'Illustrative Landlord Costs (Example R5500 Rent)'} } }
+            });
+        }
+
+        function renderDepositSettlementChart() {
+            const ctx = document.getElementById('depositSettlementChart')?.getContext('2d');
+            if (!ctx) return;
+            if (depositSettlementChartInstance) depositSettlementChartInstance.destroy();
+            depositSettlementChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Refund to Tenant', 'Reasonable Penalty/Damages', 'Landlord Goodwill (Absorbed Loss)'],
+                    datasets: [{ data: [3023, 2500, 3000], backgroundColor: ['#A3C1AD', '#CED4DA', '#E9ECEF'], borderColor: '#FFFFFF', borderWidth: 2 }]
+                },
+                options: { ...chartOptionsBase, plugins: { ...chartOptionsBase.plugins, legend: { position: 'bottom' }, title: {display: true, text: 'Example Deposit Allocation (R5500 Deposit)'} } }
+            });
+        }
+        
+        document.getElementById('et_calculateCostsBtn')?.addEventListener('click', () => {
+            const rent = parseFloat(document.getElementById('et_monthlyRent').value);
+            const duration = parseInt(document.getElementById('et_leaseDuration').value);
+            const completed = parseInt(document.getElementById('et_monthsCompleted').value);
+            const notice = parseInt(document.getElementById('et_noticeGiven').value) || 1;
+            const resultsDiv = document.getElementById('et_costEstimateResults');
+
+            if (isNaN(rent) || rent <= 0 || isNaN(duration) || duration <= 0 || isNaN(completed) || completed < 0 || completed >= duration) {
+                resultsDiv.innerHTML = '<p class="text-red-500">Please enter valid lease details.</p>'; return;
+            }
+
+            const monthsRemainingEffectively = Math.max(0, duration - completed - notice);
+            const lostRent = Math.min(monthsRemainingEffectively, 2) * rent; // Capped at 2 months, landlord must mitigate
+            const advertising = Math.min(rent * 0.5, 1000); // Simplified advertising/admin
+            const proRataInitialAgentFee = (rent / duration) * (duration - completed); // If agent fee was one month rent
+
+            let penalty = lostRent + advertising;
+            if (completed < duration / 2) { // Heavier penalty if lease broken very early
+                penalty += proRataInitialAgentFee * 0.5; // Add portion of initial agent fee
+            }
+            penalty = Math.min(penalty, rent * 2.5); // Cap penalty
+
+            resultsDiv.innerHTML = `
+                <h4 class="font-semibold mb-1">Illustrative Early Termination Penalty Estimate:</h4>
+                <p>Lost Rent (max 2 months after notice): R ${lostRent.toFixed(2)}</p>
+                <p>Advertising/Admin to re-let: R ${advertising.toFixed(2)}</p>
+                ${(completed < duration / 2) ? `<p>Portion of Initial Agent Fee: R ${(proRataInitialAgentFee * 0.5).toFixed(2)}</p>` : ''}
+                <p class="font-bold mt-1">Estimated Reasonable Penalty: ~R ${penalty.toFixed(2)}</p>
+                <p class="text-xs mt-1">This is a simplified estimate. Actual penalty depends on landlord's actual, proven losses and mitigation efforts. It cannot be punitive.</p>
+            `;
+        });
+
+        document.getElementById('vl_calculateValueBtn')?.addEventListener('click', () => {
+            const dailyRate = parseFloat(document.getElementById('vl_dailyRate').value);
+            const resultsDiv = document.getElementById('vl_results');
+            if (isNaN(dailyRate) || dailyRate <=0) {
+                resultsDiv.innerHTML = '<p class="text-red-500">Please enter a valid daily rate.</p>'; return;
+            }
+            const monthlyFromDaily = dailyRate * 30;
+            const typicalMonthlyRent = dailyRate * 0.5 * 30; // Assuming monthly is 50% cheaper per day
+            const annualSavings = (monthlyFromDaily - typicalMonthlyRent) * 12;
+
+            resultsDiv.innerHTML = `
+                <p>30 Days at Daily Rate (R${dailyRate}/day): R ${monthlyFromDaily.toFixed(2)}</p>
+                <p>Typical Monthly Lease Rate (est.): R ${typicalMonthlyRent.toFixed(2)}</p>
+                <p class="font-bold mt-1">Monthly Savings with Lease: R ${(monthlyFromDaily - typicalMonthlyRent).toFixed(2)}</p>
+                <p class="font-bold">Annual Savings with 12-Month Lease: R ${annualSavings.toFixed(2)}</p>
+                <p class="text-xs mt-1">Longer leases offer stability and often better value compared to short-term rates.</p>
+            `;
+        });
+
+        const quizData = [
+            { q: "What is the typical notice period a tenant must give to cancel a fixed-term lease under the CPA?", o: ["10 business days", "20 business days", "1 calendar month", "3 calendar months"], a: "20 business days", expl: "The CPA generally allows tenants to give 20 business days' written notice to cancel a fixed-term lease." },
+            { q: "Can a landlord use your deposit for normal wear and tear?", o: ["Yes, always", "No, never", "Only if specified in lease", "Sometimes"], a: "No, never", expl: "Deposits cover damages beyond fair wear and tear, unpaid rent, or reasonable cancellation penalties." },
+            { q: "Who does the interest earned on a security deposit belong to?", o: ["The Landlord", "The Tenant", "The Estate Agent", "It's shared"], a: "The Tenant", expl: "The Rental Housing Act states that interest accrued on the deposit belongs to the tenant." },
+            { q: "What is the primary purpose of a 'reasonable cancellation penalty'?", o: ["To punish the tenant", "To compensate landlord for actual losses", "To allow landlord to profit", "To cover future vacancies"], a: "To compensate landlord for actual losses", expl: "The penalty should cover actual, proven financial losses incurred by the landlord due to early termination, after they've tried to mitigate these losses." },
+            { q: "Which body can you approach for free dispute resolution regarding rental issues?", o: ["The High Court", "The Police", "The Rental Housing Tribunal", "Your Local Councillor"], a: "The Rental Housing Tribunal", expl: "Rental Housing Tribunals in each province offer free mediation and adjudication for landlord-tenant disputes." },
+            // Add 20 more questions here, 5 per original tab approximately
+            { q: "Is a verbal lease agreement legally binding in South Africa?", o: ["Yes, always", "No, leases must be written", "Yes, but difficult to prove", "Only for less than 6 months"], a: "Yes, but difficult to prove", expl: "While the RHA encourages written leases for clarity, verbal leases can be binding but are harder to enforce." },
+            { q: "What does 'mitigation of loss' mean for a landlord in early termination?", o: ["Ignoring the vacancy", "Immediately suing the tenant", "Actively trying to find a new tenant", "Increasing rent for the next tenant"], a: "Actively trying to find a new tenant", expl: "Landlords must take reasonable steps to find a replacement tenant to minimize their financial losses." },
+            { q: "What is 'fair wear and tear'?", o: ["Any damage caused by the tenant", "Damage from accidents", "Deterioration from normal, reasonable use", "Deliberate damage"], a: "Deterioration from normal, reasonable use", expl: "Fair wear and tear is the natural decline in condition due to ordinary use over time (e.g., faded paint, worn carpets)." },
+            { q: "How soon should a landlord refund a deposit if there are no damages?", o: ["Within 30 days", "Within 7 days of lease expiry", "Within 14 days of lease expiry", "Whenever they can"], a: "Within 7 days of lease expiry", expl: "If no repairs are needed, the full deposit plus interest must be refunded within 7 days of the lease ending." },
+            { q: "Can a landlord enter your rented property anytime they want?", o: ["Yes, they own it", "Only in emergencies", "No, they must give reasonable notice", "Yes, if they suspect a breach"], a: "No, they must give reasonable notice", expl: "Tenants have a right to privacy. Landlords must give reasonable notice for inspections, except in emergencies." },
+            { q: "What is an 'ingoing inspection'?", o: ["An inspection halfway through the lease", "An inspection when the tenant moves out", "A joint inspection before the tenant moves in", "An inspection by the bank"], a: "A joint inspection before the tenant moves in", expl: "An ingoing inspection documents the property's condition at the start of the lease, ideally done jointly by landlord and tenant." },
+            { q: "If a landlord uses an agent, who typically pays the agent's commission for finding a tenant?", o: ["The Tenant", "The Landlord", "It's split 50/50", "The Government"], a: "The Landlord", expl: "The landlord usually pays the estate agent's commission for sourcing and placing a tenant." },
+            { q: "What's a common amount for a security deposit?", o: ["Three months' rent", "R500 flat fee", "One month's rent", "10% of annual rent"], a: "One month's rent", expl: "While it can vary, a deposit equivalent to one month's rent is a common market practice." },
+            { q: "Is a landlord required to provide receipts for repairs deducted from a deposit?", o: ["No, their word is enough", "Only if the tenant asks", "Yes, always", "Only for repairs over R1000"], a: "Yes, always", expl: "If deductions are made for repairs, the landlord must provide the tenant with receipts as proof of the costs incurred." },
+            { q: "What does 'voetstoots' mean in a lease context?", o: ["The property is brand new", "The landlord guarantees perfection", "The property is let 'as is', with existing defects", "The rent is negotiable"], a: "The property is let 'as is', with existing defects", expl: "'Voetstoots' means the tenant accepts the property in its current condition, including any patent (obvious) defects. However, landlords must still disclose latent (hidden) defects they are aware of." },
+            { q: "Can a landlord increase rent during a fixed-term lease?", o: ["Yes, anytime with notice", "No, not usually", "Only if inflation is high", "Yes, by 10% annually"], a: "No, not usually", expl: "Rent is typically fixed for the duration of a fixed-term lease, unless the lease agreement specifically allows for an escalation under certain conditions." },
+            { q: "What is a 'breach of lease'?", o: ["Paying rent a day late", "Having a visitor", "Failing to comply with a material term of the lease", "Requesting a repair"], a: "Failing to comply with a material term of thelease", expl: "A breach occurs when either party fails to meet significant obligations outlined in the lease, like non-payment of rent or causing serious damage." },
+            { q: "If a property becomes uninhabitable (e.g., major flood), can a tenant cancel the lease?", o: ["No, they must wait for repairs", "Yes, usually immediately or claim rent remission", "Only if the landlord agrees", "They must keep paying rent"], a: "Yes, usually immediately or claim rent remission", expl: "If the property is no longer fit for occupation due to no fault of the tenant, they usually have grounds to cancel or claim a reduction in rent." },
+            { q: "What is the Rental Housing Tribunal's main function?", o: ["To find tenants for landlords", "To provide housing loans", "To resolve disputes between tenants and landlords", "To set rental prices"], a: "To resolve disputes between tenants and landlords", expl: "RHTs are established to provide a free and accessible way to resolve disputes fairly." },
+            { q: "Is it a landlord's responsibility to maintain the exterior of the property?", o: ["No, that's the tenant's job", "Yes, generally for structural and major elements", "Only if it's a freestanding house", "Shared responsibility"], a: "Yes, generally for structural and major elements", expl: "Landlords are typically responsible for maintaining the structure, roof, plumbing, electrical systems, and common areas." },
+            { q: "Can a tenant make alterations to a rental property?", o: ["Yes, anytime", "Only minor cosmetic changes", "Usually only with the landlord's written consent", "No, never"], a: "Usually only with the landlord's written consent", expl: "Tenants typically need the landlord's prior written permission before making any alterations or additions." },
+            { q: "What should be included in a notice of termination?", o: ["Just the date of moving", "Reason for leaving and forwarding address", "Property address, names, date, clear intention to terminate", "A request for the deposit back"], a: "Property address, names, date, clear intention to terminate", expl: "A valid notice should clearly identify the property, parties, and state the intention to terminate as of a specific date." },
+            { q: "If a lease expires and the tenant stays with landlord's consent, what happens?", o: ["The tenant must sign a new 12-month lease", "It becomes a periodic (month-to-month) lease", "The deposit is forfeited", "The rent automatically doubles"], a: "It becomes a periodic (month-to-month) lease", expl: "It's usually deemed a periodic lease on the same terms, requiring a longer notice period (often 1-2 months) to terminate." },
+            { q: "What does 'sub-letting' mean?", o: ["Sharing a room with a friend", "The tenant rents out part or all of the property to someone else", "The landlord has multiple tenants", "Having overnight guests"], a: "The tenant rents out part or all of the property to someone else", expl: "Sub-letting usually requires the landlord's prior written consent." },
+            { q: "Is the landlord responsible for insuring the tenant's personal belongings?", o: ["Yes, it's part of property insurance", "No, tenants need their own contents insurance", "Only if the damage is due to landlord negligence", "Yes, up to a certain value"], a: "No, tenants need their own contents insurance", expl: "The landlord's insurance covers the building structure; tenants are responsible for insuring their own possessions." }
+        ];
+
+        let currentQuizSet = [];
+        let currentQuestionInSet = 0;
+        let totalScore = 0;
+        let questionsAnsweredInSession = 0;
+        const questionsPerSet = 5;
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function startQuiz() {
+            shuffleArray(quizData);
+            currentQuizSet = quizData.slice(0, questionsPerSet);
+            currentQuestionInSet = 0;
+            totalScore = 0;
+            questionsAnsweredInSession = 0;
+            document.getElementById('quizScoreArea').style.display = 'none';
+            document.getElementById('quizControls').style.display = 'block';
+            displayNextQuestion();
+        }
+
+        function displayNextQuestion() {
+            document.getElementById('quizFeedback').style.display = 'none';
+            document.getElementById('revealAnswerBtn').disabled = false;
+
+            if (currentQuestionInSet < currentQuizSet.length) {
+                const questionData = currentQuizSet[currentQuestionInSet];
+                document.getElementById('quizProgress').textContent = `Question ${questionsAnsweredInSession + 1} of ${quizData.length} (Set ${Math.floor(questionsAnsweredInSession / questionsPerSet) + 1}: ${currentQuestionInSet + 1}/${questionsPerSet})`;
+                document.getElementById('quizQuestion').textContent = questionData.q;
+                const optionsHtml = questionData.o.map(option =>
+                    `<button onclick="selectAnswer(this, '${option === questionData.a}')">${option}</button>`
+                ).join('');
+                document.getElementById('quizOptions').innerHTML = optionsHtml;
+            } else {
+                // End of current set
+                document.getElementById('quizScoreArea').innerHTML = `Set complete! Your score for this set: ${totalScore} / ${questionsPerSet}. Total questions answered: ${questionsAnsweredInSession}.<br><button class="btn mt-2" onclick="loadNextQuizSet()">Next Set of Questions</button>`;
+                document.getElementById('quizScoreArea').style.display = 'block';
+                document.getElementById('quizQuestion').textContent = '';
+                document.getElementById('quizOptions').innerHTML = '';
+                document.getElementById('quizControls').style.display = 'none';
+                 totalScore = 0; // Reset score for the next set
+            }
+        }
+        
+        function loadNextQuizSet() {
+            if (questionsAnsweredInSession >= quizData.length) {
+                 document.getElementById('quizScoreArea').innerHTML = `All questions answered! Final session score: ${totalScore} / ${questionsAnsweredInSession}. <br><button class="btn mt-2" onclick="startQuiz()">Restart Quiz</button>`;
+                 return;
+            }
+            const remainingQuestions = quizData.slice(questionsAnsweredInSession);
+            currentQuizSet = remainingQuestions.slice(0, questionsPerSet);
+            currentQuestionInSet = 0;
+            document.getElementById('quizScoreArea').style.display = 'none';
+            document.getElementById('quizControls').style.display = 'block';
+            displayNextQuestion();
+        }
+
+
+        function selectAnswer(buttonEl, isCorrect) {
+            document.querySelectorAll('#quizOptions button').forEach(btn => btn.disabled = true);
+            document.getElementById('revealAnswerBtn').disabled = true;
+            buttonEl.classList.add('selected');
+            const feedbackDiv = document.getElementById('quizFeedback');
+            const questionData = currentQuizSet[currentQuestionInSet];
+
+            if (isCorrect === 'true') {
+                totalScore++;
+                feedbackDiv.innerHTML = `<strong class="correct">Correct!</strong> ${questionData.expl}`;
+                feedbackDiv.className = 'quiz-feedback correct';
+            } else {
+                feedbackDiv.innerHTML = `<strong class="incorrect">Incorrect.</strong> The correct answer is: ${questionData.a}.<br>${questionData.expl}`;
+                feedbackDiv.className = 'quiz-feedback incorrect';
+            }
+            feedbackDiv.style.display = 'block';
+            currentQuestionInSet++;
+            questionsAnsweredInSession++;
+        }
+
+        document.getElementById('nextQuizQuestionBtn').addEventListener('click', () => {
+            if (document.getElementById('quizFeedback').style.display === 'none' && currentQuestionInSet < currentQuizSet.length) {
+                 // If no answer selected for current question, show a prompt or do nothing.
+                 // For simplicity here, we'll just not advance if feedback isn't visible (meaning an answer wasn't processed)
+                 alert("Please select an answer or reveal it before proceeding.");
+                 return;
+            }
+            displayNextQuestion();
+        });
+
+        document.getElementById('revealAnswerBtn').addEventListener('click', () => {
+            const questionData = currentQuizSet[currentQuestionInSet];
+            const feedbackDiv = document.getElementById('quizFeedback');
+            feedbackDiv.innerHTML = `The correct answer is: <strong>${questionData.a}</strong>.<br>${questionData.expl}`;
+            feedbackDiv.className = 'quiz-feedback'; // Neutral feedback style
+            feedbackDiv.style.display = 'block';
+            document.querySelectorAll('#quizOptions button').forEach(btn => btn.disabled = true);
+            document.getElementById('revealAnswerBtn').disabled = true;
+            currentQuestionInSet++; // Still advances the question index
+            questionsAnsweredInSession++;
+        });
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            renderLandlordCostsChart();
+            renderDepositSettlementChart();
+            startQuiz(); // Initialize quiz on home page load
+        });
+
+    </script>
+</body>
+</html>
